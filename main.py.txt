@@ -1,0 +1,394 @@
+# CSUF 462 Face detection project
+# Michael Cervantes
+# Eric rosneagagnerkwatnlk
+
+
+import sys
+from PyQt4 import QtGui, QtCore
+from mainWindow import Ui_MainWindow
+import functools
+import numpy as np
+import cv2
+import os
+import random
+from PyQt4.QtGui import *
+from genErr import Ui_genErr
+rand = random.Random()
+face_size=(90,90)
+
+try:
+	_fromUtf8 = QtCore.QString.fromUtf8
+except AttributeError:
+	def _fromUtf8(s):
+		return s
+
+class Main(QtGui.QMainWindow):
+  def __init__(self):
+    QtGui.QMainWindow.__init__(self)
+    self.ui = Ui_MainWindow()
+    self.ui.setupUi(self)
+    self.setupSignals()
+    self.selectedFileName = _fromUtf8("")
+    self.selectedSaveFileName = _fromUtf8("")
+    self.ui.comboBox.addItem("Face")
+    self.ui.comboBox.addItem("Eyes")
+    self.ui.comboBox.addItem("Nose")
+    self.c = cv2.VideoCapture(0)
+    self.nose_path = "C:\\opencv\\sources\\data\\haarcascades\\haarcascade_mcs_nose.xml"
+    self.mouth_path = "C:\\opencv\\sources\\data\\haarcascades\\haarcascade_mcs_mouth.xml"
+    self.frontal_cascade_path = "C:\\opencv\\sources\\data\\haarcascades\\haarcascade_frontalface_default.xml"
+    self.eye_cascade_path = "C:\\opencv\\sources\\data\\haarcascades\\haarcascade_eye.xml"
+    self.face = None
+    self.faces = []
+    self.names = None
+    self.model = cv2.createLBPHFaceRecognizer()
+    self.realTimePredictFlag = False
+    self.detectedImage = None
+    self.recognizerTrained = False
+    #self.ui.save_Label.setText('hello world')
+    #self.ui.rec_Label.setText('hello world')
+    
+
+  def setupSignals(self):
+    self.ui.openImage_Btn.clicked.connect(self.openImage)
+    self.ui.detectFaces_Btn.clicked.connect(self.detectFaces)
+    self.ui.vidCapture_Btn.clicked.connect(self.vidCapture)
+    self.ui.trainRec_Btn.clicked.connect(self.trainRec)
+    self.ui.saveFace_Btn.clicked.connect(self.saveFace)
+    #self.ui.predictFace_Btn.clicked.connect(self.predictFace)
+    self.ui.radio_Btn.clicked.connect(self.radio)
+    self.ui.motionCap_Btn.clicked.connect(self.motionCapture)
+    self.ui.saveImage_Btn.clicked.connect(self.saveImage)
+
+  #this function saves an image user HD.
+  def saveImage(self):
+    if self.detectedImage == None:
+      self.throwError('Error 031:No processed image detected!')
+    else:
+      try:
+        self.selectedSaveFileName = QtGui.QFileDialog.getSaveFileName(self, 'Save Image', os.path.join(os.path.expanduser("~"), "Desktop"), 'Image Files (*.png *.jpg *.bmp)')
+        cv2.imwrite(str(self.selectedSaveFileName),self.detectedImage)
+      except:
+        self.throwError('Error 030:Invalid file name!')
+
+    
+    
+        
+
+#calculates the difference between frames, this is used for the
+#motion detection
+  def diffImg(self, t0, t1, t2):
+    d1 = cv2.absdiff(t2, t1)
+    d2 = cv2.absdiff(t1, t0)
+    return cv2.bitwise_and(d1, d2)
+
+#function called when open motion capture button clicked
+#this function mostly makes use of the above diffImg function
+#it captures 3 frames, and sends them to diffImg
+  def motionCapture(self):
+    if self.c.isOpened():
+      print('vid source found')
+    else:
+      print('no vid source found')
+      self.throwError('Error 080:No video source detected!')
+    print('motion cap btn clicked')
+    while(self.c.isOpened()):
+      frame_minus = self.c.read()[1]
+      frame = self.c.read()[1]
+      frame_plus = self.c.read()[1]
+
+      diff = self.diffImg(frame_minus, frame, frame_plus)
+			
+      cv2.imshow('Motion Tracking', diff)
+
+      k = cv2.waitKey(10)
+      if k == 27:
+        break
+
+    cv2.destroyAllWindows()
+
+#I will probably get rid this function, it doesn't seem neccessary
+#check back later
+  def radio(self):
+    
+    #print(type(genericError))
+    #print('radio button clicked')
+    if self.ui.radio_Btn.isChecked() == True:
+      self.realTimePredictFlag = True
+      if self.recognizerTrained == False:
+        self.throwError('Error 070:Recognizer not trained!')
+      print('radio button is down')
+
+#this function makes a single prediction on the current detected face
+      #this function has been deprecated, will not be used at the moment
+  def predictFace(self):
+    [p_label, p_confidence] = self.model.predict(np.asarray(self.face))
+    if p_label != -1:
+      name = self.names[p_label]
+    print(name)
+    print(p_label)
+    print(p_confidence)
+
+#this function opens a new openCV window that will display live feed from a
+#video device(webcam)
+#it will also perform real time face detection, frame by frame
+#this understandably introduces some lag
+#the function will also peform real time face recognition, if the
+#radio button on the main menu is pressed down
+  def vidCapture(self):
+    if self.c.isOpened():
+      print('vid source found')
+    else:
+      print('no vid source found')
+      self.throwError('Error 040:No video source found!')
+      
+    while(self.c.isOpened()):
+      ret, frame = self.c.read()
+      comboIndex = self.ui.comboBox.currentIndex()
+      #print(comboIndex) #face = 0 eyes = 1 nose = 2
+      if comboIndex == 0:
+        face_cascade = cv2.CascadeClassifier(self.frontal_cascade_path)
+      elif comboIndex == 1:
+        face_cascade = cv2.CascadeClassifier(self.eye_cascade_path)
+      else:
+        face_cascade = cv2.CascadeClassifier(self.nose_path)    
+        
+      
+      gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+      faces = face_cascade.detectMultiScale(gray, 1.1, 15)
+      
+
+      for(x,y,w,h)in faces:
+        self.face = cv2.resize( gray[y:y+h, x:x+h], face_size )
+        cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0),2)
+      
+        if self.ui.radio_Btn.isChecked() == True and self.recognizerTrained == True:
+          if comboIndex != 0:
+            pass
+          else:       
+            [p_label, p_confidence] = self.model.predict(np.asarray(self.face))
+            if p_label != -1 : name = self.names[p_label]   
+            cv2.putText(frame,"%s %.2f" % (name, p_confidence),(x+10,y+20),cv2.FONT_HERSHEY_PLAIN,1.5,(0,400,0))
+
+      cv2.imshow("Capture", frame)
+      
+      k = cv2.waitKey(10)
+      if k == 27:
+        break
+    cv2.destroyAllWindows()
+
+#this function will save a face in the Training Data folder
+#these faces will be used to train the algorithm
+#faces must be named, using the line edit on the GUI
+#if faces are not named, they cannot be used to train the algorithm
+  def saveFace(self):
+    #self.frontal_cascade_path = "C:\\opencv\\sources\\data\\haarcascades\\haarcascade_frontalface_default.xml"
+    comboIndex = self.ui.comboBox.currentIndex()
+    if comboIndex != 0:
+      print('error wrong HC alg')
+      self.throwError('Error052:H.C. Algorithm must be set to face')
+
+    elif str(self.ui.lineEdit.text()) == '':
+      print('no name entered')
+      self.throwError('Error 051:No name entered!')
+    else:
+      if self.faces == None:
+        print('self.face is None')
+        print(type(self.face))
+        self.throwError('Error 050:No face detected!')
+      else:
+        directory = "C:\\TrainingData"
+        prename = str(self.ui.lineEdit.text())
+        name = prename.strip('\r').strip('\n')
+        print(type(name))
+        dirname = os.path.join(directory,name)
+        print('dirname is',dirname)
+        
+
+        try:
+          os.mkdir(dirname)
+        except:
+          print('in except')
+
+        path=os.path.join(dirname,"%d.png" %(rand.uniform(0,10000)))
+        try:
+          #cv2.imshow("face",self.face)
+          #cv2.imwrite("C:\\TrainingData",self.face)
+          cv2.imwrite(path,self.face)
+          print('path is',path)
+          update = 'Image saved:' + path
+          self.ui.save_Label.setText(update)
+        except:
+          print('could not write image')
+        print(self.ui.lineEdit.text())
+
+# this function is called when the Train Recognizer button is pressed
+# the directory of training data is specified,
+# and a call is mode to trainModel function to train the algorithm
+  def trainRec(self):
+    imgdir = "C:\\TrainingData"
+    images,labels,self.names = self.trainModel(imgdir,self.model)
+    #print("trained:",len(images),"images",len(self.names),"persons")
+    update = "trained:",len(images),"images",len(self.names),"persons"
+    updateString = str(update)
+    self.ui.rec_Label.setText(updateString)
+    print(updateString)
+    if len(images) == 0:
+      self.throwError('Error 060:No training data found!')
+    else:
+      self.recognizerTrained = True
+
+# this function will use readImages function to read in the images, labels and names
+# most of the work is done in the model.train() call, we give the algorithm the images and names
+# and the algorithm uses this data to train itself
+  def trainModel(self,imgpath,model):
+    X,y,names = self.readImages(imgpath)
+    if len(X) == 0:
+      print("image path empty",imgpath)
+      return [[],[],[]]
+    model.train(np.asarray(X), np.asarray(y, dtype=np.int32))
+    return [X,y,names]
+
+# reads images in the specified folder
+# returns the images as a list of numpy arrays [X]
+# returns python list of labels [numerical identifiers of person] [y]
+# returns python list of the names of person, list is index by label [z]
+  def readImages(self,path):
+    c = 0
+    X,y,z = [], [], []
+    for dirname, dirnames, filenames in os.walk(path):
+      for subdirname in dirnames:
+        subject_path = os.path.join(dirname, subdirname)
+        for filename in os.listdir(subject_path):
+          try:
+            im = cv2.imread(os.path.join(subject_path, filename), cv2.IMREAD_GRAYSCALE)
+            if(len(im)==0):
+              continue
+            X.append(np.asarray(im, dtype=np.uint8))
+            y.append(c)
+          except IOError, (errno, strerror):
+            print "I/O error({0}): {1}".format(errno, strerror)
+          except:
+            print "Unexpected error:", sys.exc_info()[0]
+            raise
+        c = c + 1
+        z.append(subdirname)
+    return [X,y,z]
+          
+                
+                                   
+                                
+# this function is called when the open image button is pressed.
+# the function uses QFileDialog to get a path to a specified image, using QFileDialogs built in file browser
+# once we get the path, we can set u[ a QPixmap (an image representation), and assign it to our GUI label
+  def openImage(self):
+    print('open image clicked')
+    self.selectedFileName = QtGui.QFileDialog.getOpenFileName(self, 'Open Image', os.path.join(os.path.expanduser("~"), "Desktop"), 'Image Files (*.png *.jpg *.bmp)')
+    myScaledPixmap = QtGui.QPixmap(self.selectedFileName).scaled(self.ui.label_Image.size())
+    self.ui.label_Image.setPixmap(myScaledPixmap)
+    #image_gView
+    #scene = QtGui.QGraphicsScene()
+    #scene.setSceneRect(-600, -600, 1200, 1200)
+    #pic = QtGui.QPixmap("crowd.jpg")
+    #scene.addItem(QtGui.QGraphicsPixmapItem(pic))
+    #view = self.ui.image_gView
+    #view.setScene(scene)
+    #view.show()
+
+  def throwError(self,string):
+    Dialog = QtGui.QDialog()
+    genericError = Ui_genErr()
+    genericError.setupUi(Dialog)
+    genericError.label.setText(string)
+    Dialog.setModal(True)
+    #Dialog.show()
+    Dialog.exec_()
+
+# this function is called when detect faces button is clicked. this will detect faces in an image.
+# if no image has been loaded, an error is thrown
+  def detectFaces(self):
+    if str(self.selectedFileName) == '':
+      self.throwError('Error 021:No image loaded!')
+    else:
+      face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+
+# get scale factor from UI slider to use in algorithm
+      print('detect faces button clicked')
+      #z = self.ui.horizontalSlider.value()
+      #print(z)
+      #z is 0-99
+      #z1 = 1.1 + z/100.0
+      #print('z1 is',z1)
+      #z2 = round(z1,1)
+      #print('z2 is',z2)
+      #comboItem = self.ui.comboBox.currentText()
+      #comboIndex = self.ui.comboBox.currentIndex()
+      #print('current HC is',comboItem)
+      #print('current Index is',comboIndex)
+      #Default is index 0
+      #Profile is index 1
+
+# get index of combo box, to determine which haarcascade to use
+
+
+      #if comboIndex == 0:
+      #  face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+      #else:
+      #  face_cascade = cv2.CascadeClassifier('haarcascade_profileface.xml')
+
+
+# read in the image that was taken from open image function
+# it is converted to grayscale for processing
+
+      img = cv2.imread(str(self.selectedFileName))
+      gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+      #faces = face_cascade.detectMultiScale(gray, z2, 5)
+
+# here is the meat and potatoes, where the work is done
+# detectMultiScale is what will search for faces
+      faces = face_cascade.detectMultiScale(
+        gray,
+        scaleFactor=1.1,
+        minNeighbors=5,
+        minSize=(30, 30),
+        #flags = cv2.cv.CV_HAAR_SCALE_IMAGE
+       )
+    
+      print "Found {0} faces!".format(len(faces))
+      if len(faces) == 0:
+        self.throwError('Error 020:No faces could be detected!')
+
+# this piece of code is what draws the box around a found face
+      for (x, y, w, h) in faces:
+        cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+
+      height, width, bytesPerComponent = img.shape
+      bytesPerLine = bytesPerComponent * width;
+
+      # Convert to RGB for QImage, we want the display the image in RGB for the user
+      cv2.cvtColor(img, cv2.COLOR_BGR2RGB, img)
+      
+      #cv2.imshow('faces found',img)
+
+      #set our detected image to a global variable so we can save it later
+      self.detectedImage = img
+
+# set the image to our image label
+      image = QImage(img.data, width, height, bytesPerLine, QImage.Format_RGB888)
+      new_pixmap = QPixmap.fromImage(image).scaled(self.ui.label_Image.size())
+
+      self.ui.label_Image.setPixmap(new_pixmap)
+
+    
+      
+      cv2.waitKey(0)
+      cv2.destroyAllWindows()
+    
+   
+    
+    
+if __name__ == '__main__':
+  app = QtGui.QApplication(sys.argv)
+  window = Main()
+  window.show()
+  sys.exit(app.exec_())

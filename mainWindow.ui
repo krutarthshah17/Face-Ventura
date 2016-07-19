@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>740</width>
+    <height>598</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QWidget" name="gridLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>10</y>
+      <width>631</width>
+      <height>421</height>
+     </rect>
+    </property>
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_Image">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QPushButton" name="openImage_Btn">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>440</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Open Image</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="detectFaces_Btn">
+    <property name="geometry">
+     <rect>
+      <x>100</x>
+      <y>440</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Detect Faces</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="comboBox">
+    <property name="geometry">
+     <rect>
+      <x>290</x>
+      <y>460</y>
+      <width>69</width>
+      <height>22</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_2">
+    <property name="geometry">
+     <rect>
+      <x>290</x>
+      <y>440</y>
+      <width>101</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Video H.C. Algorithm</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="vidCapture_Btn">
+    <property name="geometry">
+     <rect>
+      <x>400</x>
+      <y>440</y>
+      <width>121</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Open Video Capture</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="trainRec_Btn">
+    <property name="geometry">
+     <rect>
+      <x>400</x>
+      <y>470</y>
+      <width>121</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Train Recognizer</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="saveFace_Btn">
+    <property name="geometry">
+     <rect>
+      <x>400</x>
+      <y>500</y>
+      <width>121</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Save Face</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEdit">
+    <property name="geometry">
+     <rect>
+      <x>530</x>
+      <y>500</y>
+      <width>113</width>
+      <height>20</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QRadioButton" name="radio_Btn">
+    <property name="geometry">
+     <rect>
+      <x>400</x>
+      <y>530</y>
+      <width>191</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Turn on RealTime Prediction</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="motionCap_Btn">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>470</y>
+      <width>131</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Open Motion Tracking</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="saveImage_Btn">
+    <property name="geometry">
+     <rect>
+      <x>180</x>
+      <y>440</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Save Image</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="rec_Label">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>510</y>
+      <width>371</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Recognizer Untrained</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="save_Label">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>530</y>
+      <width>361</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>No face saved</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>740</width>
+     <height>21</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
